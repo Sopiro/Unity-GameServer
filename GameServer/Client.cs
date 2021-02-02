@@ -12,33 +12,38 @@ namespace GameServer
         public int id;
         public TCP tcp;
 
-        public Client(int clinetId)
+        public Client(int _clinetId)
         {
-            id = clinetId;
+            id = _clinetId;
             tcp = new TCP(id);
         }
 
         public class TCP
         {
-            public TcpClient socket = null;
+            public TcpClient socket;
 
             private readonly int id;
 
             private NetworkStream stream;
             private byte[] receiveBuffer;
 
-            public TCP(int id)
+            public TCP(int _id)
             {
-                this.id = id;
+                id = _id;
             }
 
-            public void Connect(TcpClient socket)
+            public void Connect(TcpClient _socket)
             {
+                socket = _socket;
+
                 socket.ReceiveBufferSize = dataBufferSize;
                 socket.SendBufferSize = dataBufferSize;
-                  
+
+                stream = socket.GetStream();
+
                 receiveBuffer = new byte[dataBufferSize];
 
+                // Start reading steam asynchronously with callback function
                 stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
             }
 
@@ -47,10 +52,7 @@ namespace GameServer
                 try
                 {
                     int byteLen = stream.EndRead(ar);
-                    if(byteLen <= 0)
-                    {
-                        return;
-                    }
+                    if (byteLen <= 0) return;
 
                     byte[] data = new byte[byteLen];
                     Array.Copy(receiveBuffer, data, byteLen);

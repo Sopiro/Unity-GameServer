@@ -14,10 +14,10 @@ namespace GameServer
 
         private static TcpListener tcpListener;
 
-        public static void Start(int maxPlayers, int port)
+        public static void Start(int _maxPlayers, int _port)
         {
-            MaxPlayers = maxPlayers;
-            Port = port;
+            MaxPlayers = _maxPlayers;
+            Port = _port;
 
             Console.WriteLine("Starting server...");
 
@@ -26,6 +26,7 @@ namespace GameServer
             tcpListener = new TcpListener(IPAddress.Any, Port);
             tcpListener.Start();
 
+            // Start accepting client asynchronously with callback funciton
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
 
             Console.WriteLine($"Server started on port: {Port}.");
@@ -35,8 +36,10 @@ namespace GameServer
         {
             TcpClient client = tcpListener.EndAcceptTcpClient(ar);
             tcpListener.BeginAcceptTcpClient(new AsyncCallback(TCPConnectCallback), null);
-            Console.WriteLine($"Incomiing connection from {client.Client.RemoteEndPoint} ...");
 
+            Console.WriteLine($"Incoming connection from {client.Client.RemoteEndPoint} ...");
+
+            // Apply new client connection
             for (int i = 1; i <= MaxPlayers; i++)
             {
                 if (clients[i].tcp.socket == null)
