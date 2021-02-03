@@ -27,6 +27,8 @@ namespace GameServer
             private NetworkStream stream;
             private byte[] receiveBuffer;
 
+            private Packet receivedData;
+
             public TCP(int _id)
             {
                 id = _id;
@@ -41,10 +43,28 @@ namespace GameServer
 
                 stream = socket.GetStream();
 
+                receivedData = new Packet();
                 receiveBuffer = new byte[dataBufferSize];
 
                 // Start reading steam asynchronously with callback function
                 stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
+
+                ServerSend.Welcome(id, "MapleStory");
+            }
+
+            public void SendData(Packet _packet)
+            {
+                try
+                {
+                    if (socket != null)
+                    {
+                        stream.BeginWrite(_packet.ToArray(), 0, _packet.Length(), null, null);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error sending data to player {id} via TCP:{e}");
+                }
             }
 
             private void ReceiveCallback(IAsyncResult ar)
@@ -57,12 +77,69 @@ namespace GameServer
                     byte[] data = new byte[byteLen];
                     Array.Copy(receiveBuffer, data, byteLen);
 
+                    receivedData.Reset(HandleData(data));
                     stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Error reveiving TCP data:{e}");
                 }
+            }
+
+            private bool HandleData(byte[] _data)
+            {
+                int packetLen = 0;
+
+                receivedData.SetBytes(_data);
+
+                // Read packet length
+                if (receivedData.UnreadLength() >= 4)
+                {
+                    packetLen = receivedData.ReadInt();
+                    if (packetLen <= 0)
+                    {
+                        return true;
+                    }
+                }
+
+                // Handling receibed packet via corresponding packet hanlder function
+                while (packetLen > 0 && packetLen <= receivedData.UnreadLength())
+                {
+                    byte[] packetBytes = receivedData.ReadBytes(packetLen);
+
+                    ThreadManager.ExecuteOnMainThread(() =>
+                    {
+                        using (Packet p = new Packet(packetBytes))
+                        {
+                            int packetId = p.ReadInt();
+                            Server.packetHandlers[packetId](id, p);
+                        }
+                    });
+
+                    packetLen = 0;
+                    if (receivedData.UnreadLength() >= 4)
+                    {
+                        packetLen = receivedData.ReadInt();
+                        if (packetLen <= 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                //if (packetLen <= 1)
+                //{
+                //    return true;
+                //}
+
+                //return false;
+
+                if (packetLen > 0)
+                {
+                    throw new Exception("Error handling packet");
+                }
+
+                return true;
             }
         }
     }
