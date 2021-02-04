@@ -6,11 +6,19 @@ using System.Net.Sockets;
 
 namespace GameServer
 {
-    class Client
+    public class Client
     {
         public static int dataBufferSize = 4096;
         public int id;
         public TCP tcp;
+
+        public bool Allocated
+        {
+            get
+            {
+                return tcp.Socket != null;
+            }
+        }
 
         public Client(int _clinetId)
         {
@@ -20,7 +28,7 @@ namespace GameServer
 
         public class TCP
         {
-            public TcpClient socket;
+            public TcpClient Socket { get; private set; }
 
             private readonly int id;
 
@@ -36,12 +44,12 @@ namespace GameServer
 
             public void Connect(TcpClient _socket)
             {
-                socket = _socket;
+                Socket = _socket;
 
-                socket.ReceiveBufferSize = dataBufferSize;
-                socket.SendBufferSize = dataBufferSize;
+                Socket.ReceiveBufferSize = dataBufferSize;
+                Socket.SendBufferSize = dataBufferSize;
 
-                stream = socket.GetStream();
+                stream = Socket.GetStream();
 
                 receivedData = new Packet();
                 receiveBuffer = new byte[dataBufferSize];
@@ -49,22 +57,7 @@ namespace GameServer
                 // Start reading steam asynchronously with callback function
                 stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
 
-                ServerSend.Welcome(id, "MapleStory");
-            }
-
-            public void SendData(Packet _packet)
-            {
-                try
-                {
-                    if (socket != null)
-                    {
-                        stream.BeginWrite(_packet.ToArray(), 0, _packet.Length(), null, null);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Error sending data to player {id} via TCP:{e}");
-                }
+                ServerSend.Welcome(id, Constants.WELLCOME_MSG);
             }
 
             private void ReceiveCallback(IAsyncResult ar)
@@ -78,11 +71,28 @@ namespace GameServer
                     Array.Copy(receiveBuffer, data, byteLen);
 
                     receivedData.Reset(HandleData(data));
+
+                    // Restart reading
                     stream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Error reveiving TCP data:{e}");
+                }
+            }
+
+            public void SendData(Packet _packet)
+            {
+                try
+                {
+                    if (Socket != null)
+                    {
+                        stream.BeginWrite(_packet.ToArray(), 0, _packet.Length(), null, null);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error sending data to player {id} via TCP:{e}");
                 }
             }
 

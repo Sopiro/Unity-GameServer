@@ -4,7 +4,7 @@ using System.Text;
 
 namespace GameServer
 {
-    class ServerSend
+    public static class ServerSend
     {
         private static void SendTCPData(int _toClient, Packet _packet)
         {

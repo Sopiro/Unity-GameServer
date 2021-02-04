@@ -6,16 +6,16 @@ using System.Net.Sockets;
 
 namespace GameServer
 {
-    class Server
+    public static class Server
     {
         public static int MaxPlayers { get; private set; }
         public static int Port { get; private set; }
+
         public static Dictionary<int, Client> clients = new Dictionary<int, Client>();
+        private static TcpListener tcpListener;
 
         public delegate void PacketHandler(int _fromClient, Packet _packet);
         public static Dictionary<int, PacketHandler> packetHandlers;
-
-        private static TcpListener tcpListener;
 
         public static void Start(int _maxPlayers, int _port)
         {
@@ -45,7 +45,7 @@ namespace GameServer
             // Apply new client connection
             for (int i = 1; i <= MaxPlayers; i++)
             {
-                if (clients[i].tcp.socket == null)
+                if (!clients[i].Allocated)
                 {
                     clients[i].tcp.Connect(client);
                     return;

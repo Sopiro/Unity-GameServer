@@ -7,7 +7,7 @@ namespace GameServer
     class Program
     {
         private static bool isRunning = false;
-        private static List<DateTime> times = new List<DateTime>();
+        private static readonly List<DateTime> times = new List<DateTime>();
 
         static void Main(string[] args)
         {
@@ -43,7 +43,7 @@ namespace GameServer
                         Thread.Sleep(nextUpdate - DateTime.Now);
                 }
 
-                //Console.WriteLine(times.Count);
+                //Console.WriteLine($"Server tick rates: {times.Count}");
             }
         }
     }

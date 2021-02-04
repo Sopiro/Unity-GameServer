@@ -11,7 +11,7 @@ namespace GameServer
             int clientId = _packet.ReadInt();
             string userName = _packet.ReadString();
 
-            Console.WriteLine($"{userName} [{Server.clients[_fromClient].tcp.socket.Client.RemoteEndPoint}] connected successfully and is now {_fromClient}");
+            Console.WriteLine($"{userName} [{Server.clients[_fromClient].tcp.Socket.Client.RemoteEndPoint}] connected successfully and is now {_fromClient}");
 
             if (_fromClient != clientId)
                 Console.WriteLine($"Player \"{userName}\" (ID: {_fromClient} had assumed the wrong client ID ({clientId})");
