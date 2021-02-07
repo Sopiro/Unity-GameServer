@@ -9,21 +9,16 @@ namespace GameServer
     public class Client
     {
         public static int dataBufferSize = 4096;
+
         public int id;
         public TCP tcp;
-
-        public bool Allocated
-        {
-            get
-            {
-                return tcp.Socket != null;
-            }
-        }
+        public UDP udp;
 
         public Client(int _clinetId)
         {
             id = _clinetId;
             tcp = new TCP(id);
+            udp = new UDP(id);
         }
 
         public class TCP
@@ -137,19 +132,50 @@ namespace GameServer
                     }
                 }
 
-                //if (packetLen <= 1)
-                //{
-                //    return true;
-                //}
-
-                //return false;
-
-                if (packetLen > 0)
+                if (packetLen <= 1)
                 {
-                    throw new Exception("Error handling packet");
+                    return true;
                 }
 
-                return true;
+                return false;
+            }
+        }
+
+        public class UDP
+        {
+            public IPEndPoint endPoint;
+
+            private int id;
+
+            public UDP(int _id)
+            {
+                id = _id;
+            }
+
+            public void Connect(IPEndPoint _endPoint)
+            {
+                endPoint = _endPoint;
+            }
+
+            public void SendData(Packet _packet)
+            {
+                Server.SendUDPData(endPoint, _packet);
+            }
+
+            public void HandleData(Packet _packet)
+            {
+                int packetLen = _packet.ReadInt();
+                byte[] packetBytes = _packet.ReadBytes(packetLen);
+
+                ThreadManager.ExecuteOnMainThread(() =>
+                {
+                    using (Packet p = new Packet(packetBytes))
+                    {
+                        int packetId = p.ReadInt();
+
+                        Server.packetHandlers[packetId](id, p);
+                    }
+                });
             }
         }
     }
